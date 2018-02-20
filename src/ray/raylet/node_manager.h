@@ -7,6 +7,7 @@
 #include <boost/asio/error.hpp>
 
 #include "LsResources.h"
+#include "WorkerPool.h"
 
 using namespace std;
 namespace ray {
@@ -40,6 +41,8 @@ class NodeServer {
   boost::asio::local::stream_protocol::socket socket_;
   /// The resources local to this node.
   LsResources local_resources_;
+   // A set of workers, in a WorkerPool()
+  WorkerPool worker_pool_;
 };
 
 } // end namespace ray
