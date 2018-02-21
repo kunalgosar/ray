@@ -7,12 +7,9 @@
 #include <boost/asio/error.hpp>
 
 #include "LsResources.h"
-<<<<<<< HEAD
 #include "LsQueue.h"
 #include "LsPolicy.h"
-=======
 #include "WorkerPool.h"
->>>>>>> b9d8aaf3747c788b32cc509387f080c8696f3d4b
 
 using namespace std;
 namespace ray {
