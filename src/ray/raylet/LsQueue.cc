@@ -2,8 +2,11 @@
 #define LS_QUEUE_CC
 
 #include "LsQueue.h"
-#include "ray/id.h"
+
 #include <list>
+
+#include "common.h"
+#include "ray/id.h"
 
 namespace ray {
 
@@ -23,20 +26,65 @@ const std::list<Task>& LsQueue::ready_methods() const {
   throw std::runtime_error("Method not implemented");
 }
 
-std::vector<Task> LsQueue::RemoveTasks(std::vector<std::list<Task>::iterator> tasks) {
-  throw std::runtime_error("Method not implemented");
+// Helper function to remove tasks in the given set of task_ids from a
+// queue, and append them to the given vector removed_tasks.
+void removeTasksFromQueue(
+    std::list<Task> &queue,
+    std::unordered_set<TaskID, UniqueIDHasher> &task_ids,
+    std::vector<Task> &removed_tasks) {
+  for (auto it = queue.begin();
+       it != queue.end(); ) {
+    auto task_id = task_ids.find(it->GetTaskSpecification().TaskId());
+    if (task_id != task_ids.end()) {
+      task_ids.erase(task_id);
+      removed_tasks.push_back(std::move(*it));
+      it = queue.erase(it);
+    } else {
+      it++;
+    }
+  }
 }
+
+// Helper function to queue the given tasks to the given queue.
+void queueTasks(
+    std::list<Task> &queue,
+    const std::vector<Task> &tasks) {
+  for (auto &task : tasks) {
+    queue.push_back(task);
+  }
+}
+
+std::vector<Task> LsQueue::RemoveTasks(std::unordered_set<TaskID, UniqueIDHasher> task_ids) {
+  std::vector<Task> removed_tasks;
+
+  // Try to find the tasks to remove from the waiting tasks.
+  removeTasksFromQueue(waiting_tasks_, task_ids, removed_tasks);
+  removeTasksFromQueue(ready_tasks_, task_ids, removed_tasks);
+  removeTasksFromQueue(running_tasks_, task_ids, removed_tasks);
+  // TODO(swang): Remove from running methods.
+
+  CHECK(task_ids.size() == 0);
+  return removed_tasks;
+}
+
 void LsQueue::QueueWaitingTasks(const std::vector<Task> &tasks) {
-  throw std::runtime_error("Method not implemented");
+  queueTasks(waiting_tasks_, tasks);
 }
+
 void LsQueue::QueueReadyTasks(const std::vector<Task> &tasks) {
-  throw std::runtime_error("Method not implemented");
+  queueTasks(ready_tasks_, tasks);
 }
+
 void LsQueue::QueueRunningTasks(const std::vector<Task> &tasks) {
-  throw std::runtime_error("Method not implemented");
+  queueTasks(running_tasks_, tasks);
 }
-void LsQueue::RegisterActor(ActorID actor_id, ActorInformation &actor_information) {
-  throw std::runtime_error("Method not implemented");
+
+// RegisterActor is responsible for recording provided actor_information
+// in the actor registry.
+bool LsQueue::RegisterActor(ActorID actor_id,
+                            const ActorInformation &actor_information) {
+  actor_registry_[actor_id] = actor_information;
+  return true;
 }
 
 } // end namespace ray
