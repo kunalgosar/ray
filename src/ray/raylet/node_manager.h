@@ -7,8 +7,12 @@
 #include <boost/asio/error.hpp>
 
 #include "LsResources.h"
+<<<<<<< HEAD
 #include "LsQueue.h"
 #include "LsPolicy.h"
+=======
+#include "WorkerPool.h"
+>>>>>>> b9d8aaf3747c788b32cc509387f080c8696f3d4b
 
 using namespace std;
 namespace ray {
@@ -22,15 +26,17 @@ class NodeServer {
   NodeServer(boost::asio::io_service& io_service,
              const std::string &socket_name,
              const ResourceSet &resource_config);
-
-  /// Submit a task to this node.
-  void SubmitTask(Task& task);
+  /// Process a message from a client, then listen for more messages if the
+  /// client is still alive.
+  void ProcessClientMessage(shared_ptr<ClientConnection> client, int64_t message_type, const uint8_t *message);
  private:
   /// Accept a client connection.
   void doAccept();
   /// Handle an accepted client connection.
   void handleAccept(const boost::system::error_code& error);
 
+  /// Submit a task to this node.
+  void submitTask(Task& task);
   /// Assign a task.
   void assignTask(Task& task);
 
@@ -42,6 +48,8 @@ class NodeServer {
   boost::asio::local::stream_protocol::socket socket_;
   /// The resources local to this node.
   LsResources local_resources_;
+  // A set of workers, in a WorkerPool()
+  WorkerPool worker_pool_;
   // A set of queues that maintain tasks enqueued in pending, ready, running
   // states.
 //  LsQueue local_queues_;
