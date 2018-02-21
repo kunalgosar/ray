@@ -4,6 +4,7 @@
 #include <list>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "Task.h"
 #include "ActorInformation.h"
@@ -28,11 +29,12 @@ class LsQueue {
   const std::list<Task>& ready_methods() const;
   /// Return a list of tasks in the running state.
   const std::list<Task>& running_tasks() const;
-  std::vector<Task> RemoveTasks(std::vector<std::list<Task>::iterator> tasks);
+  std::vector<Task> RemoveTasks(std::unordered_set<TaskID, UniqueIDHasher> tasks);
   void QueueWaitingTasks(const std::vector<Task> &tasks);
   void QueueReadyTasks(const std::vector<Task> &tasks);
   void QueueRunningTasks(const std::vector<Task> &tasks);
-  void RegisterActor(ActorID actor_id, ActorInformation &actor_information);
+  bool RegisterActor(ActorID actor_id,
+                     const ActorInformation &actor_information);
 
  private:
   std::list<Task> waiting_tasks_;

@@ -38,12 +38,14 @@ set(RAY_SRCS
   om/object_directory.cc
   om/object_manager.cc
   raylet/Task.cc
+  raylet/TaskExecutionSpecification.cc
   raylet/TaskSpecification.cc
   raylet/Worker.cc
   raylet/WorkerPool.cc
   raylet/LsResources.cc
   raylet/ActorInformation.cc
   raylet/LsQueue.cc
+  raylet/LsPolicy.cc
   raylet/node_manager.cc
 )
 
