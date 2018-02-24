@@ -36,6 +36,7 @@ set(RAY_SRCS
   gcs/tables.cc
   gcs/redis_context.cc
   gcs/asio.cc
+  om/object_store_client.cc
   om/object_directory.cc
   om/object_manager.cc
   raylet/Task.cc
@@ -47,6 +48,9 @@ set(RAY_SRCS
   raylet/ActorInformation.cc
   raylet/LsQueue.cc
   raylet/LsPolicy.cc
+  raylet/task_dependency_manager.cc
+  raylet/reconstruction_policy.cc
+  raylet/local_scheduler.cc
   raylet/node_manager.cc
 )
 

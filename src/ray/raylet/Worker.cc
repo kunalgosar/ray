@@ -13,16 +13,17 @@ using namespace std;
 namespace ray {
 
 shared_ptr<ClientConnection> ClientConnection::Create(
-    NodeServer& server,
+    ClientManager& manager,
     boost::asio::local::stream_protocol::socket &&socket) {
-  return shared_ptr<ClientConnection>(new ClientConnection(server, std::move(socket)));
+  return shared_ptr<ClientConnection>(new ClientConnection(manager, std::move(socket)));
 }
 
 ClientConnection::ClientConnection(
-        NodeServer& server,
+        ClientManager& manager,
         boost::asio::local::stream_protocol::socket &&socket)
   : socket_(std::move(socket)),
-    server_(server) {
+    manager_(manager),
+    worker_(0) {
 }
 
 void ClientConnection::ProcessMessages() {
@@ -47,9 +48,7 @@ void ClientConnection::processMessageHeader(const boost::system::error_code& err
   // If there was no error, make sure the protocol version matches.
   CHECK(version_ == RayConfig::instance().ray_protocol_version());
   // Resize the message buffer to match the received length.
-  if (message_.size() < length_) {
-    message_.resize(length_);
-  }
+  message_.resize(length_);
   // Wait for the message to be read.
   boost::asio::async_read(socket_, boost::asio::buffer(message_),
       boost::bind(&ClientConnection::processMessage, shared_from_this(), boost::asio::placeholders::error)
@@ -74,7 +73,7 @@ void ClientConnection::processMessage(const boost::system::error_code& error) {
   if (error) {
     type_ = MessageType_DisconnectClient;
   }
-  server_.ProcessClientMessage(shared_from_this(), type_, message_.data());
+  manager_.ProcessClientMessage(shared_from_this(), type_, message_.data());
 }
 
 void ClientConnection::processMessages(const boost::system::error_code& error) {
@@ -85,18 +84,31 @@ void ClientConnection::processMessages(const boost::system::error_code& error) {
   }
 }
 
-/// A constructor responsible for initializing the state of a worker.
-Worker::Worker(pid_t pid, shared_ptr<ClientConnection> connection) {
-  pid_ = pid;
-  connection_ = connection;
+void ClientConnection::SetWorker(Worker &&worker) {
+  worker_ = worker;
 }
 
-pid_t Worker::Pid() {
+const Worker &ClientConnection::GetWorker() const {
+  return worker_;
+}
+
+/// A constructor responsible for initializing the state of a worker.
+Worker::Worker(pid_t pid)
+  : pid_(pid),
+    assigned_task_id_(TaskID::nil()) {
+}
+
+Worker::Worker(pid_t pid, TaskID assigned_task_id)
+  : pid_(pid),
+    assigned_task_id_(assigned_task_id) {
+}
+
+pid_t Worker::Pid() const {
   return pid_;
 }
 
-const shared_ptr<ClientConnection> Worker::Connection() {
-  return connection_;
+TaskID Worker::AssignedTaskId() const {
+  return assigned_task_id_;
 }
 
 } // end namespace ray
