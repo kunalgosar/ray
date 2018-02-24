@@ -22,7 +22,8 @@ ClientConnection::ClientConnection(
         ClientManager& manager,
         boost::asio::local::stream_protocol::socket &&socket)
   : socket_(std::move(socket)),
-    manager_(manager) {
+    manager_(manager),
+    worker_(0) {
 }
 
 void ClientConnection::ProcessMessages() {
@@ -83,18 +84,31 @@ void ClientConnection::processMessages(const boost::system::error_code& error) {
   }
 }
 
-/// A constructor responsible for initializing the state of a worker.
-Worker::Worker(pid_t pid, shared_ptr<ClientConnection> connection) {
-  pid_ = pid;
-  connection_ = connection;
+void ClientConnection::SetWorker(Worker &&worker) {
+  worker_ = worker;
 }
 
-pid_t Worker::Pid() {
+const Worker &ClientConnection::GetWorker() const {
+  return worker_;
+}
+
+/// A constructor responsible for initializing the state of a worker.
+Worker::Worker(pid_t pid)
+  : pid_(pid),
+    assigned_task_id_(TaskID::nil()) {
+}
+
+Worker::Worker(pid_t pid, TaskID assigned_task_id)
+  : pid_(pid),
+    assigned_task_id_(assigned_task_id) {
+}
+
+pid_t Worker::Pid() const {
   return pid_;
 }
 
-const shared_ptr<ClientConnection> Worker::Connection() {
-  return connection_;
+TaskID Worker::AssignedTaskId() const {
+  return assigned_task_id_;
 }
 
 } // end namespace ray
