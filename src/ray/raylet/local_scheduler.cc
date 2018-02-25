@@ -36,9 +36,9 @@ void LocalScheduler::ProcessClientMessage(shared_ptr<ClientConnection> client, i
     auto message = flatbuffers::GetRoot<RegisterClientRequest>(message_data);
     if (message->is_worker()) {
       // Create a new worker from the registration request.
-      Worker worker(message->worker_pid());
-      // Add the new worker to the pool.
-      client->SetWorker(std::move(worker));
+      std::shared_ptr<Worker> worker(new Worker(message->worker_pid(), client));
+      // Register the new worker.
+      worker_pool_.RegisterWorker(std::move(worker));
     }
 
     // Build the reply to the worker's registration request. TODO(swang): This
@@ -53,7 +53,21 @@ void LocalScheduler::ProcessClientMessage(shared_ptr<ClientConnection> client, i
     client->WriteMessage(MessageType_RegisterClientReply, fbb.GetSize(), fbb.GetBufferPointer());
   } break;
   case MessageType_GetTask: {
-    worker_pool_.AddWorker(client);
+    const std::shared_ptr<Worker> worker = worker_pool_.GetRegisteredWorker(client);
+    CHECK(worker);
+    // If the worker was assigned a task, mark it as finished.
+    if (!worker->GetAssignedTaskId().is_nil()) {
+      finishTask(worker->GetAssignedTaskId());
+    }
+    // Return the worker to the idle pool.
+    worker_pool_.PushWorker(worker);
+  } break;
+  case MessageType_DisconnectClient: {
+    // Remove the dead worker from the pool and stop listening for messages.
+    const std::shared_ptr<Worker> worker = worker_pool_.GetRegisteredWorker(client);
+    if (worker) {
+      worker_pool_.DisconnectWorker(worker);
+    }
   } break;
   case MessageType_SubmitTask: {
     // Read the task submitted by the client.
@@ -64,16 +78,12 @@ void LocalScheduler::ProcessClientMessage(shared_ptr<ClientConnection> client, i
     // Submit the task to the local scheduler.
     submitTask(task);
   } break;
-  case MessageType_DisconnectClient: {
-    // Remove the dead worker from the pool and stop listening for messages.
-    worker_pool_.RemoveWorker(client);
-  } break;
   default:
     CHECK(0);
   }
 }
 
-void LocalScheduler::submitTask(Task& task) {
+void LocalScheduler::submitTask(const Task& task) {
   local_queues_.QueueReadyTasks(std::vector<Task>({task}));
 
   // Ask policy for scheduling decision.
@@ -97,32 +107,34 @@ void LocalScheduler::submitTask(Task& task) {
   }
 }
 
-void LocalScheduler::assignTask(Task& task) {
+void LocalScheduler::assignTask(const Task& task) {
   if (worker_pool_.PoolSize() == 0) {
     // TODO(swang): Start a new worker and queue this task for future
     // assignment.
     return;
   }
 
-  shared_ptr<ClientConnection> worker = worker_pool_.PopWorker();
-  LOG_INFO("Assigning task to worker with pid %d", worker->GetWorker().Pid());
+  std::shared_ptr<Worker> worker = worker_pool_.PopWorker();
+  LOG_INFO("Assigning task to worker with pid %d", worker->Pid());
 
   // TODO(swang): Acquire resources for the task.
   //local_resources_.Acquire(task.GetTaskSpecification().GetRequiredResources());
 
-  // Send the task to the worker.
   flatbuffers::FlatBufferBuilder fbb;
   const TaskSpecification &spec = task.GetTaskSpecification();
   auto message =
       CreateGetTaskReply(fbb, spec.ToFlatbuffer(fbb),
                          fbb.CreateVector(std::vector<int>()));
   fbb.Finish(message);
-  worker->WriteMessage(MessageType_ExecuteTask, fbb.GetSize(), fbb.GetBufferPointer());
-  // Set the worker's assigned task.
-  Worker worker_information = worker->GetWorker();
-  worker->SetWorker(Worker(worker_information.Pid(), spec.TaskId()));
-  // Mark the task as running.
+  worker->Connection()->WriteMessage(MessageType_ExecuteTask, fbb.GetSize(), fbb.GetBufferPointer());
+  worker->AssignTaskId(spec.TaskId());
   local_queues_.QueueRunningTasks(std::vector<Task>({task}));
+}
+
+void LocalScheduler::finishTask(const TaskID &task_id) {
+  LOG_INFO("Finished task %s", task_id.hex().c_str());
+  local_queues_.RemoveTasks({task_id});
+  // TODO(swang): Release resources that were held for the task.
 }
 
 } // end namespace ray
