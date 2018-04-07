@@ -24,6 +24,7 @@ import numpy as np
 import ray
 import itertools
 
+from .groupby import DataFrameGroupBy
 from .utils import (
     _deploy_func,
     _map_partitions,
@@ -571,6 +572,23 @@ class DataFrame(object):
         Returns:
             A new DataFrame resulting from the groupby.
         """
+        axis = pd.DataFrame()._get_axis_number(axis)
+        if axis == 1:
+            raise NotImplementedError("TODO")
+        else:
+            if callable(by):
+                by = by(self.index)
+
+                return DataFrameGroupBy(self,
+                                        by=by,
+                                        axis=axis,
+                                        level=level,
+                                        as_index=as_index,
+                                        sort=sort,
+                                        group_keys=group_keys,
+                                        squeeze=squeeze,
+                                        **kwargs)
+
         raise NotImplementedError(
             "To contribute to Pandas on Ray, please visit "
             "github.com/ray-project/ray.")
