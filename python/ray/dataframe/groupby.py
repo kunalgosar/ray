@@ -5,6 +5,7 @@ from __future__ import print_function
 import numpy as np
 import pandas as pd
 import ray
+
 from .utils import _map_partitions
 
 
@@ -14,6 +15,7 @@ class DataFrameGroupBy(object):
                  by=None, axis=0, level=None, as_index=True, sort=True,
                  group_keys=True, squeeze=False, **kwargs):
 
+        self.columns = df.columns
         index = df.index
         index_grouped = pd.Series(index).groupby(by=by, sort=sort)
         keys_and_values = [(k, v) for k, v in index_grouped]
@@ -33,7 +35,7 @@ class DataFrameGroupBy(object):
         from .dataframe import DataFrame
 
         self._iter = [(keys_and_values[i][0],
-                       DataFrame(col_partitions=z[i].tolist(),
+                       DataFrame(col_partitions=grouped_partitions[i].tolist(),
                                  columns=df.columns,
                                  index=keys_and_values[i][1].index))
                       for i in range(len(grouped_partitions))]
@@ -49,12 +51,11 @@ class DataFrameGroupBy(object):
         """
         from .dataframe import DataFrame
 
-        # for k, obj in self.p:
-        #     z = _map_partitions(func, obj._col_partitions)
-        #
+        new_parts = np.array([_map_partitions(func, obj._col_partitions)
+                              for k, obj in self._iter])
 
-        # return DataFrame(col_partitions=new_df, index=index,
-        #                  columns=columns)
+        return DataFrame(block_partitions=new_parts,
+                         columns=self.columns)
 
     @property
     def ngroups(self):
@@ -205,7 +206,10 @@ class DataFrameGroupBy(object):
         raise NotImplementedError("Not Yet implemented.")
 
     def sum(self, **kwargs):
-        self._map_partitions(lambda df: df.sum())
+        sums_list = [pd.DataFrame(v.sum(axis=0)).T for k, v in self._iter]
+        new_df = pd.concat(sums_list)
+        new_df.index = [k for k, v in self._iter]
+        return new_df
 
     def __unicode__(self):
         raise NotImplementedError("Not Yet implemented.")
