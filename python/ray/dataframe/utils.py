@@ -41,6 +41,29 @@ def _get_widths(df):
         return 0
 
 
+def _partition_pandas_series(series, num_partitions=None, chunksize=None):
+    if num_partitions is not None:
+        chunksize = len(series) // num_partitions \
+            if len(series) % num_partitions == 0 \
+            else len(series) // num_partitions + 1
+    else:
+        assert chunksize is not None
+
+    temp_series = series
+    partitions = []
+
+    while len(temp_series) > chunksize:
+        t = temp_series[:chunksize]
+        t.reset_index(drop=True, inplace=True)
+        partitions.append(ray.put(t))
+        temp_series = temp_series[chunksize:]
+    else:
+        temp_series.reset_index(drop=True, inplace=True)
+        partitions.append(ray.put(temp_series))
+    
+    return partitions
+
+
 def _partition_pandas_dataframe(df, num_partitions=None, row_chunksize=None):
     """Partitions a Pandas DataFrame object.
     Args:

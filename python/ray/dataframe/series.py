@@ -3,6 +3,12 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import pandas as pd
+
+from .utils import (
+    _partition_pandas_series,
+    _map_partitions)
+from . import get_npartitions
 
 
 def na_op():
@@ -13,20 +19,38 @@ def na_op():
 
 class Series(object):
 
-    def __init__(self, series_oids):
+    def __init__(self, data=None, index=None, dtype=None, name=None,
+                 copy=False, fastpath=False, partitions=None):
         """Constructor for a Series object.
-
-        Args:
-            series_oids ([ObjectID]): The list of remote Series objects.
         """
-        self.series_oids = series_oids
+        if data is not None or partitions is None:
+            pd_series = pd.Series(data=data, index=index, dtype=dtype,
+                                  name=name, copy=copy, fastpath=fastpath)
+            partitions = \
+                _partition_pandas_series(pd_series,
+                                         num_partitions=get_npartitions())
+        self.partitions = np.array(partitions)
+        self.index = index
+        self.dtype = dtype
+        self.name = name
 
     @property
     def T(self):
-        raise NotImplementedError("Not Yet implemented.")
+        return self
 
     def __abs__(self):
-        raise NotImplementedError("Not Yet implemented.")
+        for t in self.dtypes:
+            if np.dtype('O') == t:
+                # TODO Give a more accurate error to Pandas
+                raise TypeError("bad operand type for abs:", "str")
+
+        partitions = np.array([_map_partitions(lambda df: df.abs())
+                               for p in self.partitions])
+
+        return Series(partitions=partitions,
+                      index=self.index,
+                      dtype=self.dtype,
+                      name=self.name)
 
     def __add__(self, right, name='__add__', na_op=na_op):
         raise NotImplementedError("Not Yet implemented.")
