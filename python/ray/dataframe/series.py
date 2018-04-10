@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 import pandas as pd
+import ray
 
 from .utils import (
     _partition_pandas_series,
@@ -29,10 +30,55 @@ class Series(object):
             partitions = \
                 _partition_pandas_series(pd_series,
                                          num_partitions=get_npartitions())
+
         self.partitions = np.array(partitions)
         self.index = index
         self.dtype = dtype
         self.name = name
+
+        self._lengths = _map_partitions(lambda s: len(s), self.partitions)
+        self._series_index = \
+            [(p_idx, p_sub_idx) for p_idx in range(len(self._lengths))
+             for p_sub_idx in range(self._lengths[p_idx])]
+
+    def _get__series_index(self):
+        """Get the _series_index for this Series.
+
+        Returns:
+            The default index.
+        """
+        if self._series_index_cache is None:
+            return None
+
+        if isinstance(self._series_index_cache, ray.local_scheduler.ObjectID):
+            self._series_index_cache = ray.get(self._series_index_cache)
+        return self._series_index_cache
+
+    def _set__series_index(self, new__index):
+        """Set the _series_index for this Series.
+
+        Args:
+            new__index: The new default index to set.
+        """
+        self._series_index_cache = new__index
+
+    _series_index = property(_get__series_index, _set__series_index)
+
+    def _get_lengths(self):
+        if self._length_cache is None:
+            return None
+        if isinstance(self._length_cache, ray.local_scheduler.ObjectID):
+            self._length_cache = ray.get(self._length_cache)
+        elif isinstance(self._length_cache, list) and \
+                isinstance(self._length_cache[0],
+                           ray.local_scheduler.ObjectID):
+            self._length_cache = ray.get(self._length_cache)
+        return self._length_cache
+
+    def _set_lengths(self, lengths):
+        self._length_cache = lengths
+
+    _lengths = property(_get_lengths, _set_lengths)
 
     @property
     def T(self):
@@ -896,13 +942,25 @@ class Series(object):
     def data(self):
         raise NotImplementedError("Not Yet implemented.")
 
-    @property
-    def dtype(self):
-        raise NotImplementedError("Not Yet implemented.")
+    def _get_dtype(self):
+        if not self._dtype_cache:
+            self._dtype_cache = ray.get(self.partitions[0]).dtype
+        return self._dtype_cache
 
-    @property
-    def dtypes(self):
-        raise NotImplementedError("Not Yet implemented.")
+    def _set_dtype(self, dtype):
+        self._dtype_cache = dtype
+
+    dtype = property(_get_dtype, _set_dtype)
+
+    def _get_dtypes(self):
+        if not self._dtypes_cache:
+            self._dtypes_cache = ray.get(self.partitions[0]).dtypes
+        return self._dtypes_cache
+
+    def _set_dtypes(self, dtypes):
+        self._dtypes_cache = dtypes
+
+    dtypes = property(_get_dtypes, _set_dtypes)
 
     @property
     def empty(self):
@@ -928,9 +986,13 @@ class Series(object):
     def imag(self):
         raise NotImplementedError("Not Yet implemented.")
 
-    @property
-    def index(self):
-        raise NotImplementedError("Not Yet implemented.")
+    def _get_index(self):
+        return self._index_cache
+
+    def _set_index(self, index):
+        self._index_cache = index
+
+    index = property(_get_index, _set_index)
 
     @property
     def is_copy(self):
