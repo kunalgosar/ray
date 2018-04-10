@@ -31,7 +31,7 @@ class Series(object):
                 _partition_pandas_series(pd_series,
                                          num_partitions=get_npartitions())
 
-        self.partitions = np.array(partitions)
+        self.partitions = partitions
         self.index = index
         self.dtype = dtype
         self.name = name
@@ -261,7 +261,7 @@ class Series(object):
         raise NotImplementedError("Not Yet implemented.")
 
     def abs(self):
-        raise NotImplementedError("Not Yet implemented.")
+        return abs(self)
 
     def add(self, other, level=None, fill_value=None, axis=0):
         raise NotImplementedError("Not Yet implemented.")
@@ -373,7 +373,8 @@ class Series(object):
         raise NotImplementedError("Not Yet implemented.")
 
     def copy(self, deep=True):
-        raise NotImplementedError("Not Yet implemented.")
+        return Series(index=self.index, dtype=self.dtype,
+                      partitions=self.partitions)
 
     def corr(self, other, method='pearson', min_periods=None):
         raise NotImplementedError("Not Yet implemented.")
@@ -458,10 +459,12 @@ class Series(object):
     def floordiv(self, other, level=None, fill_value=None, axis=0):
         raise NotImplementedError("Not Yet implemented.")
 
+    @classmethod
     def from_array(self, arr, index=None, name=None, dtype=None, copy=False,
                    fastpath=False):
         raise NotImplementedError("Not Yet implemented.")
 
+    @classmethod
     def from_csv(self, path, sep=',', parse_dates=True, header=None,
                  index_col=0, encoding=None, infer_datetime_format=False):
         raise NotImplementedError("Not Yet implemented.")
@@ -964,7 +967,7 @@ class Series(object):
 
     @property
     def empty(self):
-        raise NotImplementedError("Not Yet implemented.")
+        return not self.size
 
     @property
     def flags(self):
@@ -980,7 +983,9 @@ class Series(object):
 
     @property
     def hasnans(self):
-        raise NotImplementedError("Not Yet implemented.")
+        hasnans_partitions = _map_partitions(lambda x: x.hasnans(),
+                                             self.partitions)
+        return any(ray.get(hasnans_partitions))
 
     @property
     def imag(self):
@@ -1018,9 +1023,13 @@ class Series(object):
     def itemsize(self):
         raise NotImplementedError("Not Yet implemented.")
 
-    @property
-    def name(self):
-        raise NotImplementedError("Not Yet implemented.")
+    def _get_name(self):
+        return self._name_cache
+
+    def _set_name(self, name):
+        self._name_cache = name
+
+    name = property(_get_name, _set_name)
 
     @property
     def nbytes(self):
@@ -1028,7 +1037,7 @@ class Series(object):
 
     @property
     def ndim(self):
-        raise NotImplementedError("Not Yet implemented.")
+        return 1
 
     @property
     def real(self):
@@ -1036,11 +1045,11 @@ class Series(object):
 
     @property
     def shape(self):
-        raise NotImplementedError("Not Yet implemented.")
+        return (self.size,)
 
     @property
     def size(self):
-        raise NotImplementedError("Not Yet implemented.")
+        return sum(self._lengths)
 
     @property
     def strides(self):
@@ -1048,4 +1057,5 @@ class Series(object):
 
     @property
     def values(self):
-        raise NotImplementedError("Not Yet implemented.")
+        partition_values = _map_partitions(lambda s: s.values, self.partitions)
+        return np.concatenate(partition_values)

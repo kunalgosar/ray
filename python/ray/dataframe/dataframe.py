@@ -28,13 +28,15 @@ from .utils import (
     _deploy_func,
     _map_partitions,
     _partition_pandas_dataframe,
-    to_pandas,
+    to_pandas_df,
     _build_index,
     _blocks_to_col,
     _blocks_to_row,
     _build_columns,
     _create_block_partitions)
-from . import get_npartitions
+from . import (
+    get_npartitions,
+    Series)
 
 
 class DataFrame(object):
@@ -146,7 +148,7 @@ class DataFrame(object):
 
     def __repr__(self):
         if sum(self._row_lengths) < 60:
-            result = repr(to_pandas(self))
+            result = repr(to_pandas_df(self))
             return result
 
         def head(df, n):
@@ -354,11 +356,12 @@ class DataFrame(object):
         axis = self._row_index._get_axis_number(axis) if axis is not None \
             else 0
 
-        oid_series = ray.get(_map_partitions(remote_func,
-                             self._col_partitions if axis == 0
-                             else self._row_partitions))
+        oid_series = _map_partitions(remote_func,
+            self._col_partitions if axis == 0 else self._row_partitions)
 
         if axis == 0:
+            oid_series = ray.get(oid_series)
+
             # We use the index to get the internal index.
             oid_series = [(oid_series[i], i) for i in range(len(oid_series))]
 
@@ -372,8 +375,7 @@ class DataFrame(object):
             result_series = pd.concat([obj[0] for obj in oid_series],
                                       axis=0, copy=False)
         else:
-            result_series = pd.concat(oid_series, axis=0, copy=False)
-            result_series.index = self.index
+            result_series = Series(partitions=oid_series, index=self.index)
         return result_series
 
     @property
@@ -836,7 +838,7 @@ class DataFrame(object):
                                 ambiguous. Use a.empty, a.item(), a.any()
                                 or a.all().""")
         else:
-            return to_pandas(self).bool()
+            return to_pandas_df(self).bool()
 
     def boxplot(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                 grid=True, figsize=None, layout=None, return_type=None,

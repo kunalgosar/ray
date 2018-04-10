@@ -60,7 +60,7 @@ def _partition_pandas_series(series, num_partitions=None, chunksize=None):
     else:
         temp_series.reset_index(drop=True, inplace=True)
         partitions.append(ray.put(temp_series))
-    
+
     return partitions
 
 
@@ -102,7 +102,7 @@ def _partition_pandas_dataframe(df, num_partitions=None, row_chunksize=None):
     return row_partitions
 
 
-def from_pandas(df, num_partitions=None, chunksize=None):
+def from_pandas_df(df, num_partitions=None, chunksize=None):
     """Converts a pandas DataFrame to a Ray DataFrame.
     Args:
         df (pandas.DataFrame): The pandas DataFrame to convert.
@@ -122,7 +122,7 @@ def from_pandas(df, num_partitions=None, chunksize=None):
                      index=df.index)
 
 
-def to_pandas(df):
+def to_pandas_df(df):
     """Converts a Ray DataFrame to a pandas DataFrame/Series.
     Args:
         df (ray.DataFrame): The Ray DataFrame to convert.
@@ -137,6 +137,15 @@ def to_pandas(df):
     pd_df.index = df.index
     pd_df.columns = df.columns
     return pd_df
+
+
+def to_pandas_series(s):
+    if isinstance(s, pd.Series):
+        return s
+
+    pd_series = pd.concat(ray.get(s.partitions))
+    pd_series.index = s.index
+    return pd_series
 
 
 @ray.remote

@@ -8,7 +8,7 @@ import pandas as pd
 import ray.dataframe.io as io
 import os
 
-from ray.dataframe.utils import to_pandas
+from ray.dataframe.utils import to_pandas_df
 
 TEST_PARQUET_FILENAME = 'test.parquet'
 TEST_CSV_FILENAME = 'test.csv'
@@ -18,7 +18,7 @@ LARGE_ROW_SIZE = 7e6
 
 @pytest.fixture
 def ray_df_equals_pandas(ray_df, pandas_df):
-    return to_pandas(ray_df).sort_index().equals(pandas_df.sort_index())
+    return to_pandas_df(ray_df).sort_index().equals(pandas_df.sort_index())
 
 
 @pytest.fixture

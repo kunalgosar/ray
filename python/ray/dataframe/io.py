@@ -53,7 +53,7 @@ def _read_parquet_row_group(path, columns, row_group_id, kwargs={}):
     """Read a parquet row_group given file_path.
     """
     pf = ParquetFile(path)
-    df = pf.read_row_group(row_group_id, columns=columns, **kwargs).to_pandas()
+    df = pf.read_row_group(row_group_id, columns=columns, **kwargs).to_pandas_df()
     return df
 
 

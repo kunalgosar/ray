@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from .dataframe import DataFrame as rdf
 from .utils import (
-    from_pandas,
+    from_pandas_df,
     _deploy_func)
 from functools import reduce
 
@@ -30,9 +30,9 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
 
         # Case 2: Both are different types
         if isinstance(frame1, pd.DataFrame):
-            frame1 = from_pandas(frame1, len(frame1) / 2**16 + 1)
+            frame1 = from_pandas_df(frame1, len(frame1) / 2**16 + 1)
         if isinstance(frame2, pd.DataFrame):
-            frame2 = from_pandas(frame2, len(frame2) / 2**16 + 1)
+            frame2 = from_pandas_df(frame2, len(frame2) / 2**16 + 1)
 
         # Case 3: Both are Ray DF
         if isinstance(frame1, rdf) and \
@@ -85,6 +85,6 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         result = reduce(_concat, objs)
 
     if isinstance(result, pd.DataFrame):
-        return from_pandas(result, len(result) / 2**16 + 1)
+        return from_pandas_df(result, len(result) / 2**16 + 1)
 
     return result
