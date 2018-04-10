@@ -374,6 +374,8 @@ class DataFrame(object):
 
             result_series = pd.concat([obj[0] for obj in oid_series],
                                       axis=0, copy=False)
+            # TODO: Convert to a pandas series as intermediary to handle index
+            result_series = Series(data=result_series)
         else:
             result_series = Series(partitions=oid_series, index=self.index)
         return result_series

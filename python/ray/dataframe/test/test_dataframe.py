@@ -122,7 +122,7 @@ def test_copy(ray_df):
 
 @pytest.fixture
 def test_sum(ray_df, pandas_df):
-    assert(ray_df.sum().sort_index().equals(pandas_df.sum().sort_index()))
+    assert(ray_series_equals_pandas(ray_df.sum(), pandas_df.sum()))
 
 
 @pytest.fixture
@@ -1633,14 +1633,13 @@ def test_hist():
 
 @pytest.fixture
 def test_idxmax(ray_df, pandas_df):
-    assert \
-        ray_df.idxmax().sort_index().equals(pandas_df.idxmax().sort_index())
+    assert ray_series_equals_pandas(ray_df.idxmax(), pandas_df.idxmax())
 
 
 @pytest.fixture
 def test_idxmin(ray_df, pandas_df):
-    assert \
-        ray_df.idxmin().sort_index().equals(pandas_df.idxmin().sort_index())
+    assert ray_series_equals_pandas(ray_df.idxmin(), pandas_df.idxmin())
+
 
 
 def test_infer_objects():
@@ -1802,12 +1801,12 @@ def test_max(ray_df, pandas_df):
 
 @pytest.fixture
 def test_mean(ray_df, pandas_df):
-    assert ray_df.mean().equals(pandas_df.mean())
+    assert ray_series_equals_pandas(ray_df.mean(), pandas_df.mean())
 
 
 @pytest.fixture
 def test_median(ray_df, pandas_df):
-    assert(ray_df.median().equals(pandas_df.median()))
+    ray_series_equals_pandas(ray_df.median(), pandas_df.median())
 
 
 def test_melt():
@@ -1971,7 +1970,7 @@ def test_product():
 
 @pytest.fixture
 def test_quantile(ray_df, pandas_df, q):
-    assert(ray_df.quantile(q).equals(pandas_df.quantile(q)))
+    ray_series_equals_pandas(ray_df.quantile(q), pandas_df.quantile(q))
 
 
 @pytest.fixture
@@ -2477,7 +2476,7 @@ def test_stack():
 
 @pytest.fixture
 def test_std(ray_df, pandas_df):
-    assert(ray_df.std().equals(pandas_df.std()))
+    ray_series_equals_pandas(ray_df.std(), pandas_df.std())
 
 
 def test_sub():
@@ -2739,7 +2738,7 @@ def test_update():
 
 @pytest.fixture
 def test_var(ray_df, pandas_df):
-    assert(ray_df.var().equals(pandas_df.var()))
+    assert(ray_series_equals_pandas(ray_df.var(), pandas_df.var()))
 
 
 def test_where():

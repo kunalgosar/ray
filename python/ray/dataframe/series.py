@@ -30,6 +30,9 @@ class Series(object):
             partitions = \
                 _partition_pandas_series(pd_series,
                                          num_partitions=get_npartitions())
+            index = pd_series.index
+            name = pd_series.name
+            dtype = pd_series.dtype
 
         self.partitions = partitions
         self.index = index

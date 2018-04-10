@@ -19,8 +19,7 @@ def test_int_series():
     data = [1, 4, -2, 3, -12, 23, 1, 3, 12]
 
     pandas_series = pd.Series(data)
-    # TODO: Implement index onto series
-    ray_series = rdf.Series(data, index=pandas_series.index)
+    ray_series = rdf.Series(data)
 
     test_T(ray_series, pandas_series)
     test___abs__(ray_series, pandas_series)
