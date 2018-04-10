@@ -85,13 +85,11 @@ class Series(object):
         return self
 
     def __abs__(self):
-        for t in self.dtypes:
-            if np.dtype('O') == t:
-                # TODO Give a more accurate error to Pandas
-                raise TypeError("bad operand type for abs:", "str")
+        if np.dtype('O') == self.dtype:
+            # TODO Give a more accurate error to Pandas
+            raise TypeError("bad operand type for abs:", "str")
 
-        partitions = np.array([_map_partitions(lambda df: df.abs())
-                               for p in self.partitions])
+        partitions = _map_partitions(lambda df: df.abs(), self.partitions)
 
         return Series(partitions=partitions,
                       index=self.index,
@@ -956,7 +954,7 @@ class Series(object):
     dtype = property(_get_dtype, _set_dtype)
 
     def _get_dtypes(self):
-        if not self._dtypes_cache:
+        if not hasattr(self, '_dtypes_cache') or not self._dtypes_cache:
             self._dtypes_cache = ray.get(self.partitions[0]).dtypes
         return self._dtypes_cache
 
