@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import pytest
 import pandas as pd
+import numpy as np
 
 import ray.dataframe as rdf
 from ray.dataframe.utils import to_pandas_series
@@ -18,8 +19,8 @@ def ray_series_equals_pandas(ray_series, pandas_series):
 def test_int_series():
     data = [1, 4, -2, 3, -12, 23, 1, 3, 12]
 
-    pandas_series = pd.Series(data)
-    ray_series = rdf.Series(data)
+    pandas_series = pd.Series(data, name="test")
+    ray_series = rdf.Series(data, name="test")
 
     test_T(ray_series, pandas_series)
     test___abs__(ray_series, pandas_series)
@@ -862,8 +863,8 @@ def test_convert_objects(ray_series, pandas_series):
 
 @pytest.fixture
 def test_copy(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.copy(None)
+    ray_series_copy = ray_series.copy()
+    assert ray_series.equals(ray_series_copy)
 
 
 @pytest.fixture
@@ -964,14 +965,13 @@ def test_dropna(ray_series, pandas_series):
 
 @pytest.fixture
 def test_dtype(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.dtype
+    assert ray_series.dtype == pandas_series.dtype
 
 
 @pytest.fixture
 def test_dtypes(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.dtypes
+    assert ray_series.dtypes == pandas_series.dtypes
+
 
 
 @pytest.fixture
@@ -982,8 +982,9 @@ def test_duplicated(ray_series, pandas_series):
 
 @pytest.fixture
 def test_empty(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.empty
+    empty_series = rdf.Series([])
+    assert empty_series.empty
+    assert not ray_series.empty
 
 
 @pytest.fixture
@@ -994,8 +995,9 @@ def test_eq(ray_series, pandas_series):
 
 @pytest.fixture
 def test_equals(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.equals(None)
+    assert ray_series.equals(ray_series.copy())
+    other_series = rdf.Series([2, 3, 21, 32, 1])
+    assert not ray_series.equals(other_series)
 
 
 @pytest.fixture
@@ -1132,8 +1134,9 @@ def test_gt(ray_series, pandas_series):
 
 @pytest.fixture
 def test_hasnans(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.hasnans
+    nan_Series = rdf.Series([1, 2, 3, np.nan])
+    assert nan_Series.hasnans
+    assert not ray_series.hasnans
 
 
 @pytest.fixture
@@ -1180,8 +1183,7 @@ def test_imag(ray_series, pandas_series):
 
 @pytest.fixture
 def test_index(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.index
+    assert ray_series.index.equals(pandas_series.index)
 
 
 @pytest.fixture
@@ -1384,8 +1386,10 @@ def test_multiply(ray_series, pandas_series):
 
 @pytest.fixture
 def test_name(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.name
+    assert ray_series.name == pandas_series.name
+    ray_series_new = ray_series.copy()
+    ray_series_new.name = "new name"
+    assert ray_series_new.name != pandas_series.name
 
 
 @pytest.fixture
@@ -1396,8 +1400,7 @@ def test_nbytes(ray_series, pandas_series):
 
 @pytest.fixture
 def test_ndim(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.ndim
+    assert ray_series.ndim == pandas_series.ndim
 
 
 @pytest.fixture
@@ -1681,9 +1684,7 @@ def test_set_value(ray_series, pandas_series):
 
 @pytest.fixture
 def test_shape(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.shape
-
+    assert ray_series.shape == pandas_series.shape
 
 @pytest.fixture
 def test_shift(ray_series, pandas_series):
@@ -1693,8 +1694,8 @@ def test_shift(ray_series, pandas_series):
 
 @pytest.fixture
 def test_size(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.size
+    assert ray_series.size == pandas_series.size
+
 
 
 @pytest.fixture
@@ -1973,8 +1974,7 @@ def test_value_counts(ray_series, pandas_series):
 
 @pytest.fixture
 def test_values(ray_series, pandas_series):
-    with pytest.raises(NotImplementedError):
-        ray_series.values
+    assert np.array_equal(ray_series.values, pandas_series.values)
 
 
 @pytest.fixture

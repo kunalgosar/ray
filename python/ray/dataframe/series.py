@@ -429,7 +429,9 @@ class Series(object):
         raise NotImplementedError("Not Yet implemented.")
 
     def equals(self, other):
-        raise NotImplementedError("Not Yet implemented.")
+        self_pd = pd.concat(ray.get(self.partitions))
+        other_pd = pd.concat(ray.get(other.partitions))
+        return self_pd.equals(other_pd)
 
     def ewm(self, com=None, span=None, halflife=None, alpha=None,
             min_periods=0, freq=None, adjust=True, ignore_na=False, axis=0):
@@ -984,7 +986,7 @@ class Series(object):
 
     @property
     def hasnans(self):
-        hasnans_partitions = _map_partitions(lambda x: x.hasnans(),
+        hasnans_partitions = _map_partitions(lambda x: x.hasnans,
                                              self.partitions)
         return any(ray.get(hasnans_partitions))
 
@@ -1059,4 +1061,4 @@ class Series(object):
     @property
     def values(self):
         partition_values = _map_partitions(lambda s: s.values, self.partitions)
-        return np.concatenate(partition_values)
+        return np.concatenate(ray.get(partition_values))
