@@ -526,6 +526,8 @@ class DataFrame(object):
         Returns:
             A new DataFrame pointing to the same partitions as this one.
         """
+        if not deep:
+            return self
         return DataFrame(block_partitions=self._block_partitions,
                          columns=self.columns,
                          index=self.index)
