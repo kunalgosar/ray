@@ -123,3 +123,16 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     return DataFrame(col_partitions=with_dummies,
                      columns=dropped_columns,
                      index=data.index)
+
+
+def melt(frame, id_vars=None, value_vars=None, var_name=None,
+         value_name='value', col_level=None):
+    if col_level is not None:
+        raise NotImplementedError("Multilevel index not yet supported "
+                                  "in Pandas on Ray")
+
+    if id_vars is None:
+        id_vars = []
+
+    if value_vars is None:
+        value_vars = [col for col in frame.columns if col not in set(id_vars)]
