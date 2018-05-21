@@ -28,6 +28,7 @@ import itertools
 import io
 import sys
 import re
+import timeit
 
 from .groupby import DataFrameGroupBy
 from .utils import (
@@ -81,6 +82,7 @@ class DataFrame(object):
             col_metadata (_IndexMetadata):
                 Metadata for the new dataframe's columns
         """
+        constructor_start = timeit.default_timer()
         if isinstance(data, DataFrame):
             self._frame_data = data._frame_data
             return
@@ -94,6 +96,9 @@ class DataFrame(object):
 
             pd_df = pd.DataFrame(data=data, index=index, columns=columns,
                                  dtype=dtype, copy=copy)
+            end_pandas_constructor = timeit.default_timer()
+            print("Time taken to construct pandas Dataframe: {}".format(
+                  end_pandas_constructor - constructor_start))
 
             # Cache dtypes
             self._dtypes_cache = pd_df.dtypes
@@ -111,6 +116,9 @@ class DataFrame(object):
             axis = 0
             columns = pd_df.columns
             index = pd_df.index
+            end_pandas_to_blocks_time = timeit.default_timer()
+            print("Time taken to create blocks via pandas DataFrame: {}".format(
+                  end_pandas_to_blocks_time - constructor_start))
         else:
             # created this invariant to make sure we never have to go into the
             # partitions to get the columns
@@ -160,19 +168,30 @@ class DataFrame(object):
             if index is not None:
                 self.index = index
         else:
+            start_row_metadata_creation = timeit.default_timer()
             self._row_metadata = _IndexMetadata(self._block_partitions[:, 0],
                                                 index=index, axis=0)
-
+            end_row_metadata_creation = timeit.default_timer()
+            print("Time taken to create row_metadata: {}".format(
+                  end_row_metadata_creation - start_row_metadata_creation))
         if col_metadata is not None:
             self._col_metadata = col_metadata.copy()
             if columns is not None:
                 self.columns = columns
         else:
+            start_col_metadata_creation = timeit.default_timer()
             self._col_metadata = _IndexMetadata(self._block_partitions[0, :],
                                                 index=columns, axis=1)
+            end_col_metadata_creation = timeit.default_timer()
+            print("Time taken to create col_metadata: {}".format(
+                  end_col_metadata_creation - start_col_metadata_creation))
 
         if self._dtypes_cache is None:
             self._correct_dtypes()
+
+        end_constructor = timeit.default_timer()
+        print("Total constructor time elapsed: {}".format(
+              end_constructor - constructor_start))
 
     def _get_frame_data(self):
         data = {}

@@ -1768,7 +1768,8 @@ def print_error_messages(worker):
                     print(error_message)
                     old_error_messages.add(error_message)
                 else:
-                    print("Suppressing duplicate error message.")
+                    pass
+                    # print("Suppressing duplicate error message.")
             num_errors_received += 1
 
     try:
@@ -1783,7 +1784,8 @@ def print_error_messages(worker):
                             print(error_message)
                             old_error_messages.add(error_message)
                         else:
-                            print("Suppressing duplicate error message.")
+                            pass
+                            # print("Suppressing duplicate error message.")
                     num_errors_received += 1
     except redis.ConnectionError:
         # When Redis terminates the listen call will throw a ConnectionError,
